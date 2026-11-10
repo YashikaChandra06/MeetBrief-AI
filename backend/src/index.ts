@@ -1,9 +1,15 @@
 import cors from 'cors';
 import express, { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { briefingRouter } from './routes/briefingRoutes.js';
 import { researchRouter } from './routes/researchRoutes.js';
 import { settingsRouter } from './routes/settingsRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -39,7 +45,19 @@ app.use('/api/research', researchRouter);
 app.use('/api/briefings', briefingRouter);
 app.use('/api/settings', settingsRouter);
 
-// 404 Handler
+// Serve frontend static production build if available (e.g. Render, Railway, Production)
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
+// 404 Handler for API routes
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
@@ -61,4 +79,3 @@ app.listen(PORT, () => {
   console.log(`🌲 Settings status: http://localhost:${PORT}/api/settings/status`);
   console.log(`===============================================`);
 });
-

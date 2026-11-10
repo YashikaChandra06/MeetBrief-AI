@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: meetbrief-ai
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: node backend/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: TAVILY_API_KEY
+        sync: false
