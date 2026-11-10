@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#F7FAF8] text-[#18352B] antialiased selection:bg-[#E5F0E9] selection:text-[#123C2F];
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F7FAF8;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D1DDD6;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #167D55;
+  }
+}
+
+/* Print styling for clean single-page A4 output */
+@media print {
+  @page {
+    size: A4;
+    margin: 1.2cm;
+  }
+  body {
+    background: #FFFFFF !important;
+    color: #18352B !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-page {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
