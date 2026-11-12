@@ -4,14 +4,23 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { AppSettings } from './types/index.js';
 
-// Load .env
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, '../data');
 const UPLOADS_DIR = path.resolve(__dirname, '../uploads');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
+
+// Helper to clean quotes/whitespace from API keys
+export const cleanKey = (key?: string): string => {
+  if (!key) return '';
+  return key.trim().replace(/^["']+|["']+$/g, '').trim();
+};
+
+// Load .env from multiple potential locations (backend folder, root folder, cwd)
+dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
 
 // Ensure directories exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -22,7 +31,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 let activeSettings: AppSettings = {
-  tavilyApiKey: process.env.TAVILY_API_KEY || '',
+  tavilyApiKey: cleanKey(process.env.TAVILY_API_KEY),
   ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
   ollamaModel: process.env.OLLAMA_MODEL || '',
 };
@@ -36,7 +45,7 @@ try {
       ...activeSettings,
       ...parsed,
       // If env var was updated manually and file is empty, prioritize non-empty
-      tavilyApiKey: parsed.tavilyApiKey || process.env.TAVILY_API_KEY || '',
+      tavilyApiKey: cleanKey(parsed.tavilyApiKey || process.env.TAVILY_API_KEY),
       ollamaBaseUrl: parsed.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
       ollamaModel: parsed.ollamaModel || process.env.OLLAMA_MODEL || '',
     };
@@ -69,7 +78,7 @@ export const config = {
   },
 
   getTavilyApiKey(): string {
-    return activeSettings.tavilyApiKey || process.env.TAVILY_API_KEY || '';
+    return cleanKey(activeSettings.tavilyApiKey || process.env.TAVILY_API_KEY || '');
   },
 
   getOllamaBaseUrl(): string {

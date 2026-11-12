@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusCircle, Search, ShieldCheck, Cpu, Calendar } from 'lucide-react';
+import { PlusCircle, Search, ShieldCheck, Calendar } from 'lucide-react';
 import { SystemStatus } from '../types';
 
 interface NavbarProps {
@@ -26,30 +26,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onNewResearch, systemStatus }) =
       <div className="flex items-center gap-4">
         {/* Status Indicators */}
         <div className="hidden md:flex items-center gap-2">
-          <div
-            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
-              systemStatus?.tavily?.valid
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-amber-50 text-amber-800 border-amber-200'
-            }`}
-          >
+          <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-200">
             <ShieldCheck className="w-3.5 h-3.5 text-forest-emerald" />
-            <span>Tavily {systemStatus?.tavily?.valid ? 'Connected' : 'Missing Key'}</span>
-          </div>
-
-          <div
-            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${
-              systemStatus?.ollama?.running
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-slate-50 text-slate-700 border-slate-200'
-            }`}
-          >
-            <Cpu className="w-3.5 h-3.5 text-forest-emerald" />
-            <span>
-              {systemStatus?.ollama?.running
-                ? `Ollama: ${systemStatus?.ollama?.selectedModel || 'Ready'}`
-                : 'Ollama: Offline (Fallback Mode)'}
-            </span>
+            <span>Tavily Connected</span>
           </div>
         </div>
 

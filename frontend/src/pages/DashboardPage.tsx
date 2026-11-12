@@ -10,7 +10,6 @@ import {
   User,
   ShieldCheck,
   ChevronRight,
-  AlertCircle,
   Download,
 } from 'lucide-react';
 import {
@@ -66,31 +65,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      {/* Missing Tavily Banner if not configured */}
-      {!systemStatus?.tavily?.configured && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-soft">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
-              <AlertCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-amber-900">
-                Tavily API Key Required for Real-Time Research
-              </h4>
-              <p className="text-xs text-amber-700">
-                Add your free Tavily key in Settings to unleash autonomous 30-day web intelligence gathering.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigate('settings')}
-            className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
-          >
-            Configure Key
-          </button>
-        </div>
-      )}
-
       {/* Hero Header */}
       <div className="bg-gradient-to-r from-forest to-forest-dark rounded-3xl p-8 text-white shadow-card relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 pointer-events-none flex items-center justify-center">

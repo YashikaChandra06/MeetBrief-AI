@@ -291,7 +291,7 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
             <div className="text-[10px] text-brand-muted">
               Engine:{' '}
               {briefing.generatedBy === 'ollama'
-                ? `Ollama AI (${briefing.ollamaModel || 'Local Model'})`
+                ? 'Autonomous AI Neural Synthesis'
                 : 'Tavily Verified Algorithmic Synthesis'}
             </div>
           </div>

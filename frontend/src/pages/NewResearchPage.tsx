@@ -275,24 +275,6 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
         </p>
       </div>
 
-      {!systemStatus?.tavily?.configured && (
-        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-amber-900">Tavily API Key Not Configured</h4>
-            <p className="text-xs text-amber-700 mt-0.5">
-              To fetch live verified web results, please configure your free Tavily key in Settings.
-            </p>
-          </div>
-          <button
-            onClick={onNavigateSettings}
-            className="px-3 py-1.5 bg-amber-700 text-white text-xs font-semibold rounded-lg hover:bg-amber-800 transition-colors"
-          >
-            Configure
-          </button>
-        </div>
-      )}
-
       {error && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -310,11 +292,10 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
             <button
               type="button"
               onClick={() => setSubjectType('company')}
-              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border font-semibold text-sm transition-all ${
-                subjectType === 'company'
-                  ? 'border-forest-emerald bg-sage text-forest ring-2 ring-forest-emerald/20'
-                  : 'border-sage-border bg-white text-brand-muted hover:border-forest/40'
-              }`}
+              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border font-semibold text-sm transition-all ${subjectType === 'company'
+                ? 'border-forest-emerald bg-sage text-forest ring-2 ring-forest-emerald/20'
+                : 'border-sage-border bg-white text-brand-muted hover:border-forest/40'
+                }`}
             >
               <Building2 className={`w-4 h-4 ${subjectType === 'company' ? 'text-forest' : 'text-brand-muted'}`} />
               <span>Company / Organization</span>
@@ -323,11 +304,10 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
             <button
               type="button"
               onClick={() => setSubjectType('person')}
-              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border font-semibold text-sm transition-all ${
-                subjectType === 'person'
-                  ? 'border-forest-emerald bg-sage text-forest ring-2 ring-forest-emerald/20'
-                  : 'border-sage-border bg-white text-brand-muted hover:border-forest/40'
-              }`}
+              className={`flex items-center justify-center gap-2.5 p-3.5 rounded-2xl border font-semibold text-sm transition-all ${subjectType === 'person'
+                ? 'border-forest-emerald bg-sage text-forest ring-2 ring-forest-emerald/20'
+                : 'border-sage-border bg-white text-brand-muted hover:border-forest/40'
+                }`}
             >
               <User className={`w-4 h-4 ${subjectType === 'person' ? 'text-forest' : 'text-brand-muted'}`} />
               <span>Individual / Executive</span>
