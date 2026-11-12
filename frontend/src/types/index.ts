@@ -18,6 +18,7 @@ export interface ResearchPlanQuery {
   category: string;
   query: string;
   rationale: string;
+  sourceContext?: 'web_baseline' | 'document_driven';
 }
 
 export interface VerifiedFinding {
@@ -44,6 +45,103 @@ export interface RecentDevelopment {
   confidence: 'high' | 'medium' | 'unverified';
 }
 
+// -------------------------------------------------------------
+// Document Intelligence Types
+// -------------------------------------------------------------
+
+export interface DocumentPage {
+  pageNumber: number;
+  text: string;
+}
+
+export interface KeyStatement {
+  statement: string;
+  pageOrSlide: number;
+}
+
+export interface DocumentMetadata {
+  id: string;
+  originalName: string;
+  storedName: string;
+  mimeType: string;
+  size: number;
+  extension: string;
+  uploadedAt: string;
+  status: 'uploaded' | 'processing' | 'processed' | 'error';
+  error?: string;
+  isScannedPdf?: boolean;
+  requiresOcr?: boolean;
+  pageCount?: number;
+}
+
+export interface DocumentIntelligence {
+  id: string;
+  documentId: string;
+  fileName: string;
+  title: string;
+  summary: string;
+  headings: string[];
+  people: string[];
+  organizations: string[];
+  products: string[];
+  dates: string[];
+  financials: string[];
+  objectives: string[];
+  competitors: string[];
+  agendaItems: string[];
+  keyStatements: KeyStatement[];
+  pages: DocumentPage[];
+  extractedAt: string;
+}
+
+export interface DocumentEvidenceItem {
+  fileName: string;
+  pageOrSlide: number;
+  quote: string;
+}
+
+export interface DocumentToWebInsight {
+  id: string;
+  category: 'verified_claim' | 'recent_development' | 'contradiction_or_discrepancy' | 'change_since_document';
+  title: string;
+  documentEvidence: DocumentEvidenceItem;
+  webFinding?: {
+    headline: string;
+    publisher: string;
+    publishedDate: string;
+    url: string;
+    summary: string;
+  };
+  explanation: string;
+  significance: 'high' | 'medium' | 'low';
+}
+
+export interface DocumentBasedQuestion {
+  question: string;
+  rationale: string;
+  documentName: string;
+  pageOrSlide?: number;
+  requiresClarification: boolean;
+}
+
+export interface DocumentBriefingContext {
+  documentsCount: number;
+  documents: Array<{
+    documentId: string;
+    fileName: string;
+    summary: string;
+    objectives: string[];
+    products: string[];
+    stakeholders: string[];
+    competitors: string[];
+    financials: string[];
+    isScannedPdf?: boolean;
+    requiresOcr?: boolean;
+  }>;
+  insights: DocumentToWebInsight[];
+  documentQuestions: DocumentBasedQuestion[];
+}
+
 export interface BriefingReport {
   id: string;
   researchJobId: string;
@@ -67,6 +165,7 @@ export interface BriefingReport {
     publishedDate?: string;
     domain: string;
   }>;
+  documentContext?: DocumentBriefingContext;
   generatedBy: 'ollama' | 'algorithmic_synthesis';
   ollamaModel?: string;
   isFallback: boolean;
@@ -80,6 +179,7 @@ export interface ResearchJob {
   meetingTime: string;
   meetingPurpose?: string;
   additionalContext?: string;
+  documentIds?: string[];
   status: JobStatus;
   currentStep: number;
   currentStepName: string;
@@ -88,6 +188,7 @@ export interface ResearchJob {
   researchWindow: ResearchWindow;
   plan?: ResearchPlanQuery[];
   findings?: VerifiedFinding[];
+  documentEvidence?: DocumentIntelligence[];
   briefingId?: string;
   error?: string;
   logs: ResearchLogEntry[];
@@ -112,6 +213,6 @@ export interface SystemStatus {
     status: 'ok' | 'error';
     briefingsCount: number;
     jobsCount: number;
+    documentsCount?: number;
   };
 }
-

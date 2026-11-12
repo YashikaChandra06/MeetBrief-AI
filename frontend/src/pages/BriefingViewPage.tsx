@@ -13,11 +13,14 @@ import {
   ShieldCheck,
   HelpCircle,
   Lightbulb,
-  MessageSquare,
   TrendingUp,
-  Globe,
   Printer,
   AlertTriangle,
+  FileText,
+  FileCheck2,
+  FileSearch,
+  MessageSquare,
+  AlertCircle,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { BriefingReport } from '../types';
@@ -69,7 +72,7 @@ export const BriefingViewPage: React.FC<BriefingViewPageProps> = ({
   const handleCopyMarkdown = () => {
     if (!briefing) return;
 
-    const md = `# MEETBRIEF AI: ${briefing.subjectName}
+    let md = `# MEETBRIEF AI: ${briefing.subjectName}
 **Scheduled Meeting:** ${briefing.meetingDate} ${briefing.meetingTime}
 **Research Window:** ${briefing.researchWindow.startDate} to ${briefing.researchWindow.endDate} (Preceding 30 Days)
 ${briefing.meetingPurpose ? `**Meeting Focus:** ${briefing.meetingPurpose}\n` : ''}
@@ -87,8 +90,39 @@ ${briefing.recentDevelopments
 - **Why It Matters:** ${d.whyItMatters}`
   )
   .join('\n\n')}
+`;
 
-## C. WHAT THIS MEANS FOR THE MEETING
+    if (briefing.documentContext && briefing.documentContext.documentsCount > 0) {
+      md += `\n## DOCUMENT INTELLIGENCE & CONTEXT
+Uploaded Documents: ${briefing.documentContext.documents.map((d) => d.fileName).join(', ')}
+
+${briefing.documentContext.documents
+  .map(
+    (d) => `### Document: ${d.fileName}
+- **Summary:** ${d.summary}
+- **Objectives:** ${d.objectives.join('; ') || 'N/A'}
+- **Products:** ${d.products.join(', ') || 'N/A'}
+- **Stakeholders:** ${d.stakeholders.join(', ') || 'N/A'}`
+  )
+  .join('\n\n')}
+
+### DOCUMENT-TO-WEB INSIGHTS
+${briefing.documentContext.insights
+  .map(
+    (ins) => `* **${ins.title}** (${ins.category})
+  - **Doc Evidence:** ${ins.documentEvidence.fileName} (Page/Slide ${ins.documentEvidence.pageOrSlide}): "${ins.documentEvidence.quote}"
+  - **Analysis:** ${ins.explanation}`
+  )
+  .join('\n')}
+
+### DOCUMENT-BASED QUESTIONS
+${briefing.documentContext.documentQuestions
+  .map((dq, i) => `${i + 1}. ${dq.question} (Ref: ${dq.documentName})`)
+  .join('\n')}
+`;
+    }
+
+    md += `\n## C. WHAT THIS MEANS FOR THE MEETING
 ${briefing.whatThisMeans.map((w) => `- ${w}`).join('\n')}
 
 ## D. DISCUSSION OPPORTUNITIES
@@ -158,7 +192,6 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
         </button>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Fallback Mode Note */}
           {briefing.isFallback && (
             <div className="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
               <span>Factual Web Intelligence (AI Offline)</span>
@@ -214,7 +247,7 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
         {/* Document Header Bar */}
         <div className="border-b-2 border-forest pb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-extrabold text-sm tracking-wider text-forest uppercase">
                 MeetBrief AI
               </span>
@@ -224,6 +257,11 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
               <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
                 {briefing.subjectType}
               </span>
+              {briefing.documentContext && briefing.documentContext.documentsCount > 0 && (
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-forest text-white">
+                  {briefing.documentContext.documentsCount} Document(s) Synthesized
+                </span>
+              )}
             </div>
 
             <h1 className="text-3xl font-extrabold text-forest mt-1.5 tracking-tight">
@@ -275,6 +313,169 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
           </div>
         </div>
 
+        {/* SECTION: DOCUMENT INTELLIGENCE (IF DOCUMENTS WERE UPLOADED) */}
+        {briefing.documentContext && briefing.documentContext.documentsCount > 0 && (
+          <div className="space-y-6 pt-2 border-t border-sage-border">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-forest text-white flex items-center justify-center text-xs font-bold">
+                  ★
+                </div>
+                <h3 className="font-extrabold text-xs uppercase tracking-wider text-forest">
+                  Document Context & Internal Evidence
+                </h3>
+              </div>
+              <span className="text-[11px] font-semibold text-forest-emerald bg-sage px-2 py-0.5 rounded-full">
+                {briefing.documentContext.documentsCount} File(s) Analyzed
+              </span>
+            </div>
+
+            {/* Document Summaries */}
+            <div className="grid grid-cols-1 gap-3">
+              {briefing.documentContext.documents.map((doc, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 rounded-2xl bg-sage-subtle border border-sage-border space-y-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-forest-emerald" />
+                      <h4 className="text-xs font-bold text-forest">{doc.fileName}</h4>
+                    </div>
+                    {doc.isScannedPdf && (
+                      <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                        Scanned PDF (OCR Required)
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-brand-text leading-relaxed">{doc.summary}</p>
+
+                  <div className="flex flex-wrap gap-2 text-[11px] pt-1">
+                    {doc.objectives.length > 0 && (
+                      <div className="bg-white px-2.5 py-1 rounded-lg border border-sage-border">
+                        <span className="font-bold text-forest">Objectives: </span>
+                        <span>{doc.objectives.join('; ')}</span>
+                      </div>
+                    )}
+                    {doc.products.length > 0 && (
+                      <div className="bg-white px-2.5 py-1 rounded-lg border border-sage-border">
+                        <span className="font-bold text-forest">Products: </span>
+                        <span>{doc.products.join(', ')}</span>
+                      </div>
+                    )}
+                    {doc.stakeholders.length > 0 && (
+                      <div className="bg-white px-2.5 py-1 rounded-lg border border-sage-border">
+                        <span className="font-bold text-forest">Stakeholders: </span>
+                        <span>{doc.stakeholders.join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Document-to-Web Insights */}
+            {briefing.documentContext.insights.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileSearch className="w-4 h-4 text-forest-emerald" />
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-forest-emerald">
+                    Document-to-Web Insights (Claims Cross-Referenced Against Recent News)
+                  </h4>
+                </div>
+
+                <div className="space-y-3">
+                  {briefing.documentContext.insights.map((ins, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 rounded-2xl border border-sage-border bg-white space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <h5 className="text-xs font-bold text-forest">{ins.title}</h5>
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-sage text-forest">
+                          {ins.category.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+
+                      {/* Evidence Split View */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        {/* Doc Evidence */}
+                        <div className="p-3 rounded-xl bg-sage-subtle border border-sage-border space-y-1">
+                          <span className="text-[10px] font-bold text-brand-muted uppercase block">
+                            Document Evidence ({ins.documentEvidence.fileName} • Page/Slide {ins.documentEvidence.pageOrSlide})
+                          </span>
+                          <p className="italic text-brand-text">"{ins.documentEvidence.quote}"</p>
+                        </div>
+
+                        {/* Web Finding */}
+                        {ins.webFinding ? (
+                          <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/60 space-y-1">
+                            <span className="text-[10px] font-bold text-emerald-800 uppercase block">
+                              Web Corroboration ({ins.webFinding.publisher} • {ins.webFinding.publishedDate})
+                            </span>
+                            <a
+                              href={ins.webFinding.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-bold text-forest-emerald hover:underline block truncate"
+                            >
+                              {ins.webFinding.headline}
+                            </a>
+                            <p className="text-brand-text line-clamp-2">{ins.webFinding.summary}</p>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center">
+                            <span>No public confirmation indexed in the preceding 30 days.</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-brand-text bg-sage-subtle/70 px-3 py-1.5 rounded-lg border border-sage-border">
+                        <span className="font-bold text-forest">Analysis: </span>
+                        <span>{ins.explanation}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Document-Based Questions */}
+            {briefing.documentContext.documentQuestions.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-forest-emerald" />
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-forest-emerald">
+                    Document-Based Meeting Questions
+                  </h4>
+                </div>
+
+                <div className="space-y-2">
+                  {briefing.documentContext.documentQuestions.map((dq, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl border border-sage-border bg-white flex items-start gap-3 text-xs"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-forest-emerald text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                        D{idx + 1}
+                      </span>
+                      <div className="space-y-0.5 flex-1">
+                        <p className="font-bold text-brand-text">{dq.question}</p>
+                        <p className="text-[11px] text-brand-muted">
+                          Rationale: {dq.rationale} (Source: {dq.documentName}
+                          {dq.pageOrSlide ? `, page/slide ${dq.pageOrSlide}` : ''})
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* SECTION B: RECENT DEVELOPMENTS (5-8 items with clickable source) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -283,7 +484,7 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
                 B
               </div>
               <h3 className="font-extrabold text-xs uppercase tracking-wider text-forest-emerald">
-                Recent Developments (30-Day Window)
+                Recent Developments (30-Day Pre-Meeting Window)
               </h3>
             </div>
             <span className="text-xs font-medium text-brand-muted">
@@ -381,7 +582,7 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
           </div>
         </div>
 
-        {/* SECTION E: QUESTIONS TO ASK (5 context-aware questions) */}
+        {/* SECTION E: QUESTIONS TO ASK */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-sage flex items-center justify-center text-forest text-xs font-bold">
@@ -428,18 +629,29 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
           </div>
         </div>
 
-        {/* SECTION G: SOURCES CITED */}
-        <div className="space-y-3 pt-2 border-t border-sage-border">
+        {/* SECTION G: SOURCES CITED & ATTRIBUTION */}
+        <div className="space-y-4 pt-2 border-t border-sage-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-sage flex items-center justify-center text-forest text-xs font-bold">
                 G
               </div>
               <h3 className="font-extrabold text-xs uppercase tracking-wider text-forest-emerald">
-                Cited Sources & Real-World Citations
+                Cited Sources & Source Attribution
               </h3>
             </div>
             <span className="text-xs text-brand-muted">{briefing.sources.length} sources indexed</span>
+          </div>
+
+          {/* Strict Separation Notice Requirement */}
+          <div className="p-3 rounded-xl bg-sage-subtle border border-sage-border flex items-start gap-2.5 text-xs text-brand-muted">
+            <ShieldCheck className="w-4 h-4 text-forest-emerald shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-forest">Attribution Separation: </span>
+              <span>
+                External web sources are verified independently through real-time news reporting. Any uploaded document statements reflect internal pitch materials and are never presented as independently verified public facts.
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -466,4 +678,3 @@ ${briefing.sources.map((s) => `- [${s.title}](${s.url}) (${s.domain})`).join('\n
     </div>
   );
 };
-

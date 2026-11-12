@@ -12,6 +12,7 @@ const createResearchSchema = z.object({
   meetingTime: z.string().optional(),
   meetingPurpose: z.string().max(1000).optional(),
   additionalContext: z.string().max(2000).optional(),
+  documentIds: z.array(z.string()).max(5).optional(),
 });
 
 // POST /api/research

@@ -1,4 +1,4 @@
-import { BriefingReport, ResearchJob, SystemStatus } from '../types';
+import { BriefingReport, DocumentIntelligence, DocumentMetadata, ResearchJob, SystemStatus } from '../types';
 
 const API_BASE = '/api';
 
@@ -11,6 +11,7 @@ export const api = {
     meetingTime?: string;
     meetingPurpose?: string;
     additionalContext?: string;
+    documentIds?: string[];
   }): Promise<{ success: boolean; job: ResearchJob }> {
     const res = await fetch(`${API_BASE}/research`, {
       method: 'POST',
@@ -36,6 +37,85 @@ export const api = {
     const res = await fetch(`${API_BASE}/research`);
     if (!res.ok) {
       throw new Error(`Failed to load research jobs (${res.status})`);
+    }
+    return res.json();
+  },
+
+  // Document Upload and Management
+  async uploadDocuments(
+    files: File[],
+    onProgress?: (progressPercent: number) => void
+  ): Promise<{
+    success: boolean;
+    documents: DocumentMetadata[];
+    intelligence: DocumentIntelligence[];
+  }> {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('documents', file);
+      }
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE}/documents/upload`);
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const pct = Math.round((event.loaded / event.total) * 100);
+            onProgress(pct);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        try {
+          const json = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(json);
+          } else {
+            reject(new Error(json.error || `Upload failed with status ${xhr.status}`));
+          }
+        } catch {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during file upload'));
+      xhr.send(formData);
+    });
+  },
+
+  async listDocuments(): Promise<DocumentMetadata[]> {
+    const res = await fetch(`${API_BASE}/documents`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch documents (${res.status})`);
+    }
+    return res.json();
+  },
+
+  async getDocument(id: string): Promise<{ document: DocumentMetadata; intelligence: DocumentIntelligence }> {
+    const res = await fetch(`${API_BASE}/documents/${id}`);
+    if (!res.ok) {
+      throw new Error(`Document not found (${res.status})`);
+    }
+    return res.json();
+  },
+
+  async deleteDocument(id: string): Promise<boolean> {
+    const res = await fetch(`${API_BASE}/documents/${id}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  },
+
+  async reprocessDocument(id: string): Promise<{ document: DocumentMetadata; intelligence: DocumentIntelligence }> {
+    const res = await fetch(`${API_BASE}/documents/${id}/reprocess`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to reprocess document');
     }
     return res.json();
   },
@@ -106,4 +186,3 @@ export const api = {
     return res.json();
   },
 };
-

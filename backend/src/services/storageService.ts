@@ -1,10 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from '../config.js';
-import { BriefingReport, ResearchJob } from '../types/index.js';
+import { BriefingReport, DocumentIntelligence, DocumentMetadata, ResearchJob } from '../types/index.js';
 
 const JOBS_FILE = path.join(config.dataDir, 'jobs.json');
 const BRIEFINGS_FILE = path.join(config.dataDir, 'briefings.json');
+const DOCUMENTS_FILE = path.join(config.dataDir, 'documents.json');
+const INTELLIGENCE_FILE = path.join(config.dataDir, 'intelligence.json');
 
 function readJsonFile<T>(filePath: string, defaultValue: T): T {
   try {
@@ -33,6 +35,8 @@ function writeJsonFile<T>(filePath: string, data: T): void {
 export class StorageService {
   private jobs: Map<string, ResearchJob> = new Map();
   private briefings: Map<string, BriefingReport> = new Map();
+  private documents: Map<string, DocumentMetadata> = new Map();
+  private intelligence: Map<string, DocumentIntelligence> = new Map();
 
   constructor() {
     this.loadData();
@@ -48,6 +52,16 @@ export class StorageService {
     for (const briefing of loadedBriefings) {
       this.briefings.set(briefing.id, briefing);
     }
+
+    const loadedDocuments = readJsonFile<DocumentMetadata[]>(DOCUMENTS_FILE, []);
+    for (const doc of loadedDocuments) {
+      this.documents.set(doc.id, doc);
+    }
+
+    const loadedIntel = readJsonFile<DocumentIntelligence[]>(INTELLIGENCE_FILE, []);
+    for (const intel of loadedIntel) {
+      this.intelligence.set(intel.documentId, intel);
+    }
   }
 
   private persistJobs(): void {
@@ -62,6 +76,18 @@ export class StorageService {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     writeJsonFile(BRIEFINGS_FILE, list);
+  }
+
+  private persistDocuments(): void {
+    const list = Array.from(this.documents.values()).sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    );
+    writeJsonFile(DOCUMENTS_FILE, list);
+  }
+
+  private persistIntelligence(): void {
+    const list = Array.from(this.intelligence.values());
+    writeJsonFile(INTELLIGENCE_FILE, list);
   }
 
   // Job operations
@@ -117,13 +143,71 @@ export class StorageService {
     return exists;
   }
 
+  // Document operations
+  public saveDocument(doc: DocumentMetadata): DocumentMetadata {
+    this.documents.set(doc.id, doc);
+    this.persistDocuments();
+    return doc;
+  }
+
+  public getDocument(id: string): DocumentMetadata | null {
+    return this.documents.get(id) || null;
+  }
+
+  public listDocuments(): DocumentMetadata[] {
+    return Array.from(this.documents.values()).sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    );
+  }
+
+  public deleteDocument(id: string): boolean {
+    const doc = this.documents.get(id);
+    if (doc) {
+      // Also remove physical file if it exists
+      try {
+        const filePath = path.join(config.uploadsDir, doc.storedName);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.warn(`Could not remove physical file for document ${id}:`, err);
+      }
+      this.documents.delete(id);
+      this.intelligence.delete(id);
+      this.persistDocuments();
+      this.persistIntelligence();
+      return true;
+    }
+    return false;
+  }
+
+  // Intelligence operations
+  public saveIntelligence(intel: DocumentIntelligence): DocumentIntelligence {
+    this.intelligence.set(intel.documentId, intel);
+    this.persistIntelligence();
+    return intel;
+  }
+
+  public getIntelligence(documentId: string): DocumentIntelligence | null {
+    return this.intelligence.get(documentId) || null;
+  }
+
+  public deleteIntelligence(documentId: string): boolean {
+    const exists = this.intelligence.has(documentId);
+    if (exists) {
+      this.intelligence.delete(documentId);
+      this.persistIntelligence();
+    }
+    return exists;
+  }
+
   public getStats() {
     return {
       jobsCount: this.jobs.size,
       briefingsCount: this.briefings.size,
+      documentsCount: this.documents.size,
     };
   }
 }
 
 export const storage = new StorageService();
-

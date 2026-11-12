@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { briefingRouter } from './routes/briefingRoutes.js';
+import { documentRouter } from './routes/documentRoutes.js';
 import { researchRouter } from './routes/researchRoutes.js';
 import { settingsRouter } from './routes/settingsRoutes.js';
 
@@ -21,7 +22,8 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Request logging in development
 app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -35,7 +37,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     service: 'MeetBrief AI Backend',
-    version: '1.0.0',
+    version: '1.1.0',
     time: new Date().toISOString(),
   });
 });
@@ -43,6 +45,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // API Routes
 app.use('/api/research', researchRouter);
 app.use('/api/briefings', briefingRouter);
+app.use('/api/documents', documentRouter);
 app.use('/api/settings', settingsRouter);
 
 // Serve frontend static production build if available (e.g. Render, Railway, Production)
@@ -77,5 +80,6 @@ app.listen(PORT, () => {
   console.log(`🌲 MeetBrief AI Backend running on port ${PORT}`);
   console.log(`🌲 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🌲 Settings status: http://localhost:${PORT}/api/settings/status`);
+  console.log(`🌲 Documents: http://localhost:${PORT}/api/documents`);
   console.log(`===============================================`);
 });

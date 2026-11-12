@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
   BriefingReport,
+  DocumentIntelligence,
   ResearchJob,
   ResearchLogEntry,
   SubjectType,
@@ -23,6 +24,7 @@ export class ResearchPipeline {
     meetingTime?: string;
     meetingPurpose?: string;
     additionalContext?: string;
+    documentIds?: string[];
   }): Promise<ResearchJob> {
     const cleanSubject = sanitizeInput(params.subjectName);
     if (!cleanSubject) {
@@ -41,6 +43,7 @@ export class ResearchPipeline {
       meetingTime,
       meetingPurpose: sanitizeInput(params.meetingPurpose),
       additionalContext: sanitizeInput(params.additionalContext),
+      documentIds: params.documentIds || [],
       status: 'queued',
       currentStep: 1,
       currentStepName: 'Understanding meeting context',
@@ -90,7 +93,7 @@ export class ResearchPipeline {
       job.status = 'in_progress';
 
       // ==========================================
-      // STEP 1: UNDERSTAND THE MEETING
+      // STEP 1: UNDERSTAND THE MEETING & LOAD DOCUMENTS
       // ==========================================
       job.currentStep = 1;
       job.currentStepName = 'Understanding meeting context';
@@ -105,23 +108,67 @@ export class ResearchPipeline {
       if (job.meetingPurpose) {
         this.addLog(job, 1, `Targeting meeting purpose: "${job.meetingPurpose}"`, 'info');
       }
+
+      // Load attached meeting documents if any
+      const documentEvidence: DocumentIntelligence[] = [];
+      if (job.documentIds && job.documentIds.length > 0) {
+        for (const docId of job.documentIds) {
+          const intel = storage.getIntelligence(docId);
+          if (intel) {
+            documentEvidence.push(intel);
+          }
+        }
+        job.documentEvidence = documentEvidence;
+        if (documentEvidence.length > 0) {
+          this.addLog(
+            job,
+            1,
+            `Loaded ${documentEvidence.length} uploaded meeting document(s): ${documentEvidence
+              .map((d) => d.fileName)
+              .join(', ')}`,
+            'success'
+          );
+        }
+      }
+
       storage.saveJob(job);
       await this.sleep(400);
 
       // ==========================================
-      // STEP 2: CREATE A RESEARCH PLAN
+      // STEP 2: CREATE A RESEARCH PLAN (WITH DOCUMENT CONTEXT)
       // ==========================================
       job.currentStep = 2;
       job.currentStepName = 'Creating research plan';
       job.progressPercent = 28;
-      job.currentActivity = `Generating targeted search vectors for ${job.subjectType}`;
+      job.currentActivity = `Generating targeted search vectors for ${job.subjectType}${
+        documentEvidence.length > 0 ? ' (incorporating document intelligence)' : ''
+      }`;
 
+      // Standard baseline plan
       const plan = tavilyService.generateResearchPlan(
         job.subjectName,
         job.subjectType,
         job.meetingPurpose,
         job.researchWindow
       );
+
+      // Add document-driven queries if documents were uploaded
+      if (documentEvidence.length > 0) {
+        const docQueries = tavilyService.generateDocumentResearchQueries(
+          job.subjectName,
+          documentEvidence
+        );
+        if (docQueries.length > 0) {
+          plan.push(...docQueries);
+          this.addLog(
+            job,
+            2,
+            `Generated ${docQueries.length} targeted queries to cross-reference products, claims, and competitor dynamics from uploaded documents`,
+            'info'
+          );
+        }
+      }
+
       job.plan = plan;
       this.addLog(
         job,
@@ -223,12 +270,14 @@ export class ResearchPipeline {
       await this.sleep(400);
 
       // ==========================================
-      // STEP 6: ANALYZE DEVELOPMENTS
+      // STEP 6: ANALYZE DEVELOPMENTS & CORRELATE WITH DOCUMENTS
       // ==========================================
       job.currentStep = 6;
       job.currentStepName = 'Analyzing developments';
       job.progressPercent = 84;
-      job.currentActivity = `Synthesizing intelligence with local LLM (Ollama)...`;
+      job.currentActivity = `Synthesizing intelligence${
+        documentEvidence.length > 0 ? ' and cross-referencing document claims' : ''
+      }...`;
 
       const ollamaStatus = await ollamaService.getStatus();
       let briefingContent: Partial<BriefingReport>;
@@ -253,6 +302,7 @@ export class ResearchPipeline {
             additionalContext: job.additionalContext,
             researchWindow: job.researchWindow,
             findings: verified,
+            documentEvidence,
           });
           briefingContent = llmResult.briefing;
           generatedBy = 'ollama';
@@ -274,6 +324,7 @@ export class ResearchPipeline {
             additionalContext: job.additionalContext,
             researchWindow: job.researchWindow,
             findings: verified,
+            documentEvidence,
           });
           isFallback = true;
         }
@@ -293,6 +344,7 @@ export class ResearchPipeline {
           additionalContext: job.additionalContext,
           researchWindow: job.researchWindow,
           findings: verified,
+          documentEvidence,
         });
         isFallback = true;
       }
@@ -352,6 +404,7 @@ export class ResearchPipeline {
           `Unpublished metrics or internal organizational details.`,
         ],
         sources: uniqueSources,
+        documentContext: briefingContent.documentContext,
         generatedBy,
         ollamaModel: modelUsed,
         isFallback,
@@ -383,6 +436,7 @@ export class ResearchPipeline {
 
     const job = storage.getJob(existing.researchJobId);
     const findings: VerifiedFinding[] = job?.findings || [];
+    const documentEvidence: DocumentIntelligence[] = job?.documentEvidence || [];
 
     const ollamaStatus = await ollamaService.getStatus();
     let briefingContent: Partial<BriefingReport>;
@@ -401,6 +455,7 @@ export class ResearchPipeline {
           additionalContext: existing.additionalContext,
           researchWindow: existing.researchWindow,
           findings,
+          documentEvidence,
         });
         briefingContent = llmResult.briefing;
         generatedBy = 'ollama';
@@ -415,6 +470,7 @@ export class ResearchPipeline {
           additionalContext: existing.additionalContext,
           researchWindow: existing.researchWindow,
           findings,
+          documentEvidence,
         });
         isFallback = true;
       }
@@ -428,6 +484,7 @@ export class ResearchPipeline {
         additionalContext: existing.additionalContext,
         researchWindow: existing.researchWindow,
         findings,
+        documentEvidence,
       });
       isFallback = true;
     }
@@ -441,6 +498,7 @@ export class ResearchPipeline {
         briefingContent.discussionOpportunities || existing.discussionOpportunities,
       questionsToAsk: briefingContent.questionsToAsk || existing.questionsToAsk,
       openQuestions: briefingContent.openQuestions || existing.openQuestions,
+      documentContext: briefingContent.documentContext || existing.documentContext,
       generatedBy,
       ollamaModel: modelUsed,
       isFallback,
@@ -456,4 +514,3 @@ export class ResearchPipeline {
 }
 
 export const researchPipeline = new ResearchPipeline();
-

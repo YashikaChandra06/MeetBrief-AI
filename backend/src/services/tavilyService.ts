@@ -163,6 +163,62 @@ export class TavilyService {
   }
 
   /**
+   * Generates targeted search queries derived from uploaded documents
+   * WITHOUT sending entire confidential documents to the search engine.
+   * Only uses high-signal extracted entities (products, competitors, key claims).
+   */
+  public generateDocumentResearchQueries(
+    subjectName: string,
+    documents: any[]
+  ): ResearchPlanQuery[] {
+    const queries: ResearchPlanQuery[] = [];
+    const cleanName = subjectName.trim();
+
+    for (const doc of documents) {
+      // 1. Check products mentioned in the uploaded document
+      for (const prod of (doc.products || []).slice(0, 2)) {
+        queries.push({
+          category: 'document_product',
+          query: `"${cleanName}" "${prod}" launch announcement update`,
+          rationale: `Investigate recent developments for product "${prod}" identified in ${doc.fileName}`,
+          sourceContext: 'document_driven',
+        });
+      }
+
+      // 2. Check competitors mentioned in the document
+      for (const comp of (doc.competitors || []).slice(0, 2)) {
+        queries.push({
+          category: 'document_competitor',
+          query: `"${cleanName}" "${comp}" market comparison`,
+          rationale: `Cross-reference competitor dynamics with "${comp}" highlighted in ${doc.fileName}`,
+          sourceContext: 'document_driven',
+        });
+      }
+
+      // 3. Check key claims / milestones if available
+      for (const stmt of (doc.keyStatements || []).slice(0, 2)) {
+        const keywords = (stmt.statement || '')
+          .replace(/[^\w\s]/g, '')
+          .split(/\s+/)
+          .filter((w: string) => w.length > 4 && !/^(about|their|there|which|these|would|could|document)$/i.test(w))
+          .slice(0, 3)
+          .join(' ');
+
+        if (keywords.length > 5) {
+          queries.push({
+            category: 'document_claim_verification',
+            query: `"${cleanName}" ${keywords}`,
+            rationale: `Verify claim from ${doc.fileName} (page/slide ${stmt.pageOrSlide}) against recent 30-day news`,
+            sourceContext: 'document_driven',
+          });
+        }
+      }
+    }
+
+    return queries.slice(0, 4);
+  }
+
+  /**
    * Executes Tavily search query with error handling and date-range awareness.
    */
   public async executeSearch(
