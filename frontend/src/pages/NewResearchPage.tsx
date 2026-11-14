@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Loader2,
   AlertTriangle,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { DocumentMetadata, SubjectType, SystemStatus } from '../types';
@@ -95,7 +96,19 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.pptx', '.txt'];
+  const ALLOWED_EXTENSIONS = [
+    '.pdf',
+    '.docx',
+    '.doc',
+    '.pptx',
+    '.txt',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.webp',
+    '.gif',
+    '.bmp',
+  ];
   const MAX_FILES = 5;
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -111,7 +124,7 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
     for (const f of files) {
       const ext = '.' + f.name.split('.').pop()?.toLowerCase();
       if (!ALLOWED_EXTENSIONS.includes(ext)) {
-        setDocError(`Unsupported file format "${f.name}". Supported: PDF, DOCX, DOC, PPTX, TXT.`);
+        setDocError(`Unsupported file format "${f.name}". Supported: PDF, DOCX, DOC, PPTX, TXT, and Images (PNG, JPG, WEBP).`);
         return;
       }
       if (f.size > MAX_FILE_SIZE) {
@@ -191,6 +204,8 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
       const filesArray = Array.from(e.target.files);
       validateAndUploadFiles(filesArray);
     }
+    // Crucial: reset input so user can re-upload the same file if removed
+    e.target.value = '';
   };
 
   const handleRemoveFile = async (name: string, docId?: string) => {
@@ -439,46 +454,52 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
 
           {/* Drag & Drop Zone */}
           <div
+            onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault();
               setIsDragging(true);
             }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleFileDrop}
-            className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all bg-white flex flex-col items-center justify-center gap-2.5 ${
+            className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all bg-white flex flex-col items-center justify-center gap-3 cursor-pointer ${
               isDragging
                 ? 'border-forest-emerald bg-sage-subtle scale-[1.01]'
-                : 'border-forest-emerald/50 hover:border-forest-emerald'
+                : 'border-forest-emerald/50 hover:border-forest-emerald hover:bg-sage-subtle/30'
             }`}
           >
-            <div className="w-11 h-11 rounded-2xl bg-sage flex items-center justify-center text-forest">
+            <div className="w-12 h-12 rounded-2xl bg-sage flex items-center justify-center text-forest shadow-xs">
               <UploadCloud className="w-6 h-6 text-forest-emerald" />
             </div>
 
             <div className="space-y-1">
               <p className="text-sm font-semibold text-brand-text">
-                Drag and drop your meeting files here, or{' '}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-forest-emerald font-bold hover:underline"
-                >
-                  browse files
-                </button>
+                Drag and drop your meeting files or images here
               </p>
               <p className="text-[11px] text-brand-muted">
-                Supports PDF (.pdf), Word (.docx, .doc), PowerPoint (.pptx), and Plain Text (.txt)
+                Supports PDF (.pdf), Word (.docx, .doc), PowerPoint (.pptx), Text (.txt), and Images (.png, .jpg, .webp)
               </p>
               <p className="text-[10px] text-brand-muted/70 font-medium">
                 Max 5 files • Up to 10 MB per file
               </p>
             </div>
 
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="mt-1 inline-flex items-center gap-2 px-5 py-2.5 bg-forest hover:bg-forest-light text-white text-xs font-semibold rounded-xl shadow-soft transition-all duration-150 active:scale-95 cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4 text-emerald-300" />
+              <span>Browse Files or Images</span>
+            </button>
+
             <input
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.docx,.doc,.pptx,.txt"
+              accept=".pdf,.docx,.doc,.pptx,.txt,.png,.jpg,.jpeg,.webp,.gif,.bmp,image/*"
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -506,7 +527,11 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-sage flex items-center justify-center text-forest shrink-0">
-                        <File className="w-4 h-4 text-forest-emerald" />
+                        {['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp'].includes(item.extension.toLowerCase()) ? (
+                          <ImageIcon className="w-4 h-4 text-forest-emerald" />
+                        ) : (
+                          <File className="w-4 h-4 text-forest-emerald" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-brand-text truncate">{item.name}</p>

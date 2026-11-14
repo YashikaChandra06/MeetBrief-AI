@@ -21,7 +21,19 @@ const storageConfig = multer.diskStorage({
   },
 });
 
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.pptx', '.txt']);
+const ALLOWED_EXTENSIONS = new Set([
+  '.pdf',
+  '.docx',
+  '.doc',
+  '.pptx',
+  '.txt',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.gif',
+  '.bmp',
+]);
 
 const upload = multer({
   storage: storageConfig,
@@ -34,7 +46,7 @@ const upload = multer({
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return cb(
         new Error(
-          `Unsupported file type "${ext}". Supported formats: PDF (.pdf), Word (.docx, .doc), PowerPoint (.pptx), and Plain Text (.txt)`
+          `Unsupported file type "${ext}". Supported formats: PDF, Word (.docx, .doc), PowerPoint (.pptx), Plain Text (.txt), and Images (.png, .jpg, .jpeg, .webp)`
         )
       );
     }
@@ -208,3 +220,4 @@ documentRouter.post('/:id/reprocess', async (req: Request, res: Response): Promi
     res.status(500).json({ error: err.message || 'Reprocessing failed' });
   }
 });
+

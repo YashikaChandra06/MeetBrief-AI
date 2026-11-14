@@ -36,6 +36,7 @@ export class DocumentParserService {
     extension: string
   ): Promise<{ pages: DocumentPage[]; isScanned: boolean; requiresOcr: boolean }> {
     const ext = extension.toLowerCase();
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.svg'];
 
     if (ext === '.pdf') {
       return this.parsePdf(filePath);
@@ -47,6 +48,8 @@ export class DocumentParserService {
       return this.parseTxt(filePath);
     } else if (ext === '.doc') {
       return this.parseLegacyDoc(filePath);
+    } else if (imageExtensions.includes(ext)) {
+      return this.parseImage(filePath);
     }
 
     throw new Error(`Unsupported document extension: ${ext}`);
@@ -268,6 +271,34 @@ export class DocumentParserService {
       };
     } catch (err: any) {
       throw new Error(`Failed to extract legacy DOC file: ${err.message}`);
+    }
+  }
+
+  /**
+   * Parser for image files (meeting whiteboard photos, architecture diagrams, screenshots, slides).
+   */
+  private async parseImage(
+    filePath: string
+  ): Promise<{ pages: DocumentPage[]; isScanned: boolean; requiresOcr: boolean }> {
+    try {
+      const filename = path.basename(filePath);
+      const cleanName = filename.replace(/_[0-9]+_[a-f0-9]+(\.[a-zA-Z0-9]+)$/, '$1');
+      const title = cleanName.replace(/[-_.]/g, ' ').replace(/\s+/g, ' ').trim();
+
+      const imageContent = `[Visual Meeting Document / Image: ${title}]\nAttached visual document for meeting context and pre-meeting synthesis.`;
+
+      return {
+        pages: [
+          {
+            pageNumber: 1,
+            text: imageContent,
+          },
+        ],
+        isScanned: true,
+        requiresOcr: true,
+      };
+    } catch (err: any) {
+      throw new Error(`Failed to process image attachment: ${err.message}`);
     }
   }
 
@@ -497,3 +528,4 @@ JSON Schema:
 }
 
 export const documentParserService = new DocumentParserService();
+
